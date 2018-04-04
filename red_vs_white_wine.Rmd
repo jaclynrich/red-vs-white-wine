@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = FALSE, fig.width=6,
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(ggplot2)
 library(rmarkdown)
+library(gridExtra)
 theme_set(theme_bw())
 ```
 
@@ -87,6 +88,115 @@ df[sample(nrow(df), 10), ]
 
 It is worth noting that there are 1177 duplicated records in the combined dataset.  The original paper did not remove these duplicate records.   I have also kept the repeated rows, since from the description of the data it seems as though each row is a distinct variety, and removing them would no longer make this dataset reflective of the prevalence of certain wines; if certain characteristics of wine are more common, then this frequency should be reflected in the dataset.
 
+Additionally, there are more than three times as many white wines than red wines in the data.  This is important to keep in mind when training for classification based on color.
+
 ```{r}
 sum(duplicated(df))
 ```
+
+## Univariate Plots and Analysis
+
+#### Fixed Acidity
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# fixed.acidity
+ggplot(aes(x = fixed.acidity), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.5) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.5) +
+  scale_x_continuous(breaks = seq(0, 16, by = 1)) +
+  facet_grid(color~.) +
+  labs(x = 'Fixed Acid (g/L)', y = 'Count')
+```
+
+Since the counts for red wine are so much lower, I plotted the them separately.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# fixed.acidity
+ggplot(aes(x = fixed.acidity), data = red) +
+  geom_histogram(binwidth = 0.5, fill = 'maroon4') +
+  scale_x_continuous(breaks = seq(0, 16, by = 1))
+```
+
+Note that for all displays of summary statistics, the red wines will appear on top.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$fixed.acidity)
+summary(white$fixed.acidity)
+```
+
+```{r}
+table(cut(red$fixed.acidity, breaks=3:16))
+table(cut(white$fixed.acidity, breaks=3:16))
+```
+
+The distribution of the fixed acidity for red wines is slightly skewed to the right, with the last quartile being much more spread out than the other three.  The mass of the data lies between 7 and 8.5, with all of the values between 4.6 and 15.9.  There are only a few values greater than 14, although they do pull the mean up slightly.
+
+The distribution of the fixed acidity for white wines is much more symmetric, with only a handful of data points lying above 10.  The mass of the data lies between 6 and 7.5.  It is clear that the fixed acidity for red wines is more spread out than that of white wines, and is generally lower.
+
+
+#### Volatile Acidity
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# volatile.acidity
+ggplot(aes(x = volatile.acidity), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.05, alpha = 0.6) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.05, alpha = 0.6) +
+  scale_x_continuous(breaks = seq(0, 1.6, by = 0.2)) +
+  labs(x = 'Volatile Acidity', y = 'Count')
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$volatile.acidity)
+summary(white$volatile.acidity)
+```
+
+
+```{r}
+ggplot(aes(x = color, y = volatile.acidity), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "Color", y = "Volatile Acid (g/L)")
+```
+
+Once again the white wines have a much more clustered distribution as compared with the red; since the mass of the data occurs in such a small range, many of the larger values are shown as outliers on the boxplot.  Overall the red wines have more volatile acid than the whites; this difference is much more marked than the discrepancy between the fixed acid levels for each color.
+
+#### Citric Acid
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$citric.acid)
+summary(white$citric.acid)
+```
+
+```{r}
+ggplot(aes(x = color, y = citric.acid), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "Color", y = "Citric Acid (g/L)")
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# citric.acid
+ggplot(aes(x = citric.acid), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.025, alpha = 0.5) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.025, alpha = 0.5) +
+  xlim(c(0, 0.8)) +
+  labs(x = 'Citric Acid (g/L)', y = 'Count')
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# citric.acid
+ggplot(aes(x = citric.acid), data = df) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.025) +
+  labs(x = 'Citric Acid (g/L)', y = 'Count')
+```
+
+The data for white wine is fairly symmetric, with a slightly longer tail on the right side.  We can see from the histogram and the small box on the box and whisker plot that most of the data lies within a small range (about 0.2 - 0.4).  This also means that many of the lower and high-valued points are considered outliers.
+
+The mass of the red wine data is much more spread out and all of the data has a smaller range than the white wine.  The histogram shows three tall spikes, around 0, 0.25, 0.50.  More than 8% of the datapoints have 0 grams of ctric acid per liter.  All of the data points are less than 0.8, except for one outlier which has 1 g/L.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+table(red$citric.acid)[[1]]/length(red$X)
+```
+
+Red wine has lower levels of citric acid than white wine; about 50% of the red wines have more than 0.25 g/L, whereas about 75% of white wines have more than that.
