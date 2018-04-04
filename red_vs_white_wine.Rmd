@@ -1,0 +1,92 @@
+---
+title: "Red vs. White Wine"
+author: "Jaclyn Rich"
+date: "3/28/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width=6,
+                      fig.height=4)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(rmarkdown)
+theme_set(theme_bw())
+```
+
+## Data Overview
+
+Data Source:
+P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis.
+  Modeling wine preferences by data mining from physicochemical properties.
+  In Decision Support Systems, Elsevier, 47(4):547-553. ISSN: 0167-9236.
+
+The datasets originally consisted of 1599 Portugese red wines and 4898 white wines with 12 features and an index variable (X); neither dataset has null values.  All of the features besides quality, which is ordinal, are continuous.  The datasets were joined for a total of 6497 wines and color field was added.  The purpose of this report is to explore the chemical properties that distinguish red and white wines.  
+
+Features:
+
+  * fixed.acidity: the amount of nonvolatile (tartaric) acid
+    + nonvolatile acids do not evaporate readily
+  * volatile.acidity: the amount of volatile (acetic) acid
+    + higher levels will result in a distasteful, vinegary taste
+  * citric.acid: the amount of citric acid
+    + adds a "freshness" and flavor to wines
+    + found in small quantities
+  * residual.sugar: quantity of sugar remaining after the fermentation process is finished
+    + wines with more than 45 grams/liter are considered sweet
+  * chlorides: quantity of salt
+  * free.sulfur.dioxide: the amount of the free form of sulfer dioxide
+    + the free form exists in equilibrium between molecular sulfur dioxide (as a dissolved gas) and bisulfite ion
+    + it prevents microbial growth and oxidation of the wine
+  * total.sulfur.dioxide: the amount of free and bound forms of sulfer dioxide
+    + in low amounts it is usually not noticeable
+    + in higher amounts it is apparent in the nose and taste of the wine
+  * density: grams per cubic centimeter
+  * pH: describes how acidic or basic the wine is
+    + pH scale goes from 0 (most acidic) to 14 (most basic)
+  * sulphates: the amount of potassium sulfate
+    + potassium sulfate is a antimicrobial and antioxidant additive which can contribute to sulfur dioxide gas levels 
+  * alcohol: the percent volume of alcohol
+  * quality: score between 0 (worst) and 10 (best)
+    + three independent taste testers rated each wine
+    + the median score was chosen as the quality
+
+The amounts are in grams per liter.
+
+#### Red Wine
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+red <- read.csv('wineQualityReds.csv')
+dim(red)
+str(red)
+summary(red)
+head(red)
+```
+
+#### White Wine
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+white <- read.csv('wineQualityWhites.csv')
+dim(white)
+str(white)
+summary(white)
+head(white)
+```
+
+#### Combined Data
+```{r}
+# Add color field and join the dataframes
+red$color = "red"
+white$color = "white"
+df <- rbind(red[-c(1)], white[-c(1)]) # do not include X (index) field
+dim(df)
+str(df)
+summary(df)
+df[sample(nrow(df), 10), ]
+```
+
+It is worth noting that there are 1177 duplicated records in the combined dataset.  The original paper did not remove these duplicate records.   I have also kept the repeated rows, since from the description of the data it seems as though each row is a distinct variety, and removing them would no longer make this dataset reflective of the prevalence of certain wines; if certain characteristics of wine are more common, then this frequency should be reflected in the dataset.
+
+```{r}
+sum(duplicated(df))
+```
