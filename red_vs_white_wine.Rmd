@@ -24,7 +24,7 @@ P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis.
   Modeling wine preferences by data mining from physicochemical properties.
   In Decision Support Systems, Elsevier, 47(4):547-553. ISSN: 0167-9236.
 
-The datasets originally consisted of 1599 Portugese red wines and 4898 white wines with 12 features and an index variable (X); neither dataset has null values.  All of the features besides quality, which is ordinal, are continuous.  The datasets were joined for a total of 6497 wines and color field was added.  The purpose of this report is to explore the chemical properties that distinguish red and white wines.  
+The datasets originally consisted of 1599 Portugese red wines and 4898 white wines with 12 features and an index variable (X); neither dataset has null values.  All of the features besides quality, which is ordinal, are continuous.  The datasets were joined for a total of 6497 wines and a color field was added.  The purpose of this report is to explore the chemical properties that distinguish red and white wines.  
 
 Features:
 
@@ -38,13 +38,13 @@ Features:
   * residual.sugar: quantity of sugar remaining after the fermentation process is finished
     + wines with more than 45 grams/liter are considered sweet
   * chlorides: quantity of salt
-  * free.sulfur.dioxide: the amount of the free form of sulfer dioxide
+  * free.sulfur.dioxide: the amount of the free form of sulfur dioxide
     + the free form exists in equilibrium between molecular sulfur dioxide (as a dissolved gas) and bisulfite ion
     + it prevents microbial growth and oxidation of the wine
   * total.sulfur.dioxide: the amount of free and bound forms of sulfer dioxide
     + in low amounts it is usually not noticeable
     + in higher amounts it is apparent in the nose and taste of the wine
-  * density: grams per cubic centimeter
+  * density: mass per unit of volume
   * pH: describes how acidic or basic the wine is
     + pH scale goes from 0 (most acidic) to 14 (most basic)
   * sulphates: the amount of potassium sulfate
@@ -56,15 +56,6 @@ Features:
 
 The amounts are in grams per liter.
 
-#### Red Wine
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-red <- read.csv('wineQualityReds.csv')
-dim(red)
-str(red)
-summary(red)
-head(red)
-```
-
 #### White Wine
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 white <- read.csv('wineQualityWhites.csv')
@@ -74,48 +65,41 @@ summary(white)
 head(white)
 ```
 
+#### Red Wine
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+red <- read.csv('wineQualityReds.csv')
+dim(red)
+str(red)
+summary(red)
+head(red)
+```
+
 #### Combined Data
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Add color field and join the dataframes
-red$color = "red"
 white$color = "white"
+red$color = "red"
 df <- rbind(red[-c(1)], white[-c(1)]) # do not include X (index) field
+df$color <- as.factor(df$color)
+df$color <- relevel(df$color, "white")
 dim(df)
 str(df)
 summary(df)
 df[sample(nrow(df), 10), ]
 ```
 
+
 It is worth noting that there are 1177 duplicated records in the combined dataset.  The original paper did not remove these duplicate records.   I have also kept the repeated rows, since from the description of the data it seems as though each row is a distinct variety, and removing them would no longer make this dataset reflective of the prevalence of certain wines; if certain characteristics of wine are more common, then this frequency should be reflected in the dataset.
 
 Additionally, there are more than three times as many white wines than red wines in the data.  This is important to keep in mind when training for classification based on color.
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 sum(duplicated(df))
 ```
 
 ## Univariate Plots and Analysis
 
 #### Fixed Acidity
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# fixed.acidity
-ggplot(aes(x = fixed.acidity), data = df) +
-  geom_histogram(data = white, fill = "khaki2", binwidth = 0.5) +
-  geom_histogram(data = red, fill = "maroon4", binwidth = 0.5) +
-  scale_x_continuous(breaks = seq(0, 16, by = 1)) +
-  facet_grid(color~.) +
-  labs(x = 'Fixed Acid (g/L)', y = 'Count')
-```
-
-Since the counts for red wine are so much lower, I plotted the them separately.
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# fixed.acidity
-ggplot(aes(x = fixed.acidity), data = red) +
-  geom_histogram(binwidth = 0.5, fill = 'maroon4') +
-  scale_x_continuous(breaks = seq(0, 16, by = 1))
-```
 
 Note that for all displays of summary statistics, the red wines will appear on top.
 
@@ -124,7 +108,25 @@ summary(red$fixed.acidity)
 summary(white$fixed.acidity)
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = fixed.acidity), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.5) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.5) +
+  scale_x_continuous(breaks = seq(0, 16, by = 1)) +
+  facet_grid(color~.) +
+  labs(x = "Tartaric Acid (g/L)", y = "Count")
+```
+
+Since the counts for red wine are so much lower, I plotted the them separately.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = fixed.acidity), data = red) +
+  geom_histogram(binwidth = 0.5, fill = 'maroon4') +
+  scale_x_continuous(breaks = seq(0, 16, by = 1)) +
+  labs(x = 'Tartaric Acid (g/L)', y = 'Count')
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 table(cut(red$fixed.acidity, breaks=3:16))
 table(cut(white$fixed.acidity, breaks=3:16))
 ```
@@ -135,29 +137,36 @@ The distribution of the fixed acidity for white wines is much more symmetric, wi
 
 
 #### Volatile Acidity
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# volatile.acidity
-ggplot(aes(x = volatile.acidity), data = df) +
-  geom_histogram(data = white, fill = "khaki2", binwidth = 0.05, alpha = 0.6) +
-  geom_histogram(data = red, fill = "maroon4", binwidth = 0.05, alpha = 0.6) +
-  scale_x_continuous(breaks = seq(0, 1.6, by = 0.2)) +
-  labs(x = 'Volatile Acidity', y = 'Count')
-```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 summary(red$volatile.acidity)
 summary(white$volatile.acidity)
 ```
 
-
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(aes(x = color, y = volatile.acidity), data = df) +
   geom_boxplot() +
   coord_flip() +
-  labs(x = "Color", y = "Volatile Acid (g/L)")
+  labs(x = "", y = "Acetic Acid (g/L)")
 ```
 
-Once again the white wines have a much more clustered distribution as compared with the red; since the mass of the data occurs in such a small range, many of the larger values are shown as outliers on the boxplot.  Overall the red wines have more volatile acid than the whites; this difference is much more marked than the discrepancy between the fixed acid levels for each color.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = volatile.acidity), data = df) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.05, alpha = 0.6) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.05, alpha = 0.6) +
+  scale_x_continuous(breaks = seq(0, 1.6, by = 0.2)) +
+  labs(x = 'Acetic Acid (g/L)', y = 'Count')
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = volatile.acidity), data = df) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.05, alpha = 0.6) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.05, alpha = 0.6) +
+  scale_x_log10() +
+  labs(x = 'Acetic Acid (g/L)', y = 'Count')
+```
+
+Once again the white wines have a much more clustered distribution as compared with the red; since the mass of the data occurs in such a small range, many of the larger values are shown as outliers on the boxplot.  Overall the red wines have more volatile acid than the whites; this discrepancy is much more marked than that of fixed acid levels.  Since the data was long-tailed and the data is spread over more than an order of magnitude, I also plotted it on a log base 10 scale, where it looks normally distributed.
 
 #### Citric Acid
 
@@ -166,17 +175,14 @@ summary(red$citric.acid)
 summary(white$citric.acid)
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(aes(x = color, y = citric.acid), data = df) +
   geom_boxplot() +
   coord_flip() +
-  labs(x = "Color", y = "Citric Acid (g/L)")
+  labs(x = "", y = "Citric Acid (g/L)")
 ```
 
-
-
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# citric.acid
 ggplot(aes(x = citric.acid), data = df) +
   geom_histogram(data = white, fill = "khaki2", binwidth = 0.025, alpha = 0.5) +
   geom_histogram(data = red, fill = "maroon4", binwidth = 0.025, alpha = 0.5) +
@@ -185,7 +191,6 @@ ggplot(aes(x = citric.acid), data = df) +
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# citric.acid
 ggplot(aes(x = citric.acid), data = df) +
   geom_histogram(data = red, fill = "maroon4", binwidth = 0.025) +
   labs(x = 'Citric Acid (g/L)', y = 'Count')
@@ -193,10 +198,259 @@ ggplot(aes(x = citric.acid), data = df) +
 
 The data for white wine is fairly symmetric, with a slightly longer tail on the right side.  We can see from the histogram and the small box on the box and whisker plot that most of the data lies within a small range (about 0.2 - 0.4).  This also means that many of the lower and high-valued points are considered outliers.
 
-The mass of the red wine data is much more spread out and all of the data has a smaller range than the white wine.  The histogram shows three tall spikes, around 0, 0.25, 0.50.  More than 8% of the datapoints have 0 grams of ctric acid per liter.  All of the data points are less than 0.8, except for one outlier which has 1 g/L.
+The mass of the red wine data is much more spread out and all of the data has a smaller range than the white wine.  The histogram shows three tall spikes, around 0, 0.25, and 0.50.  More than 8% of the datapoints have 0 grams of ctric acid per liter.  All of the data points are less than 0.8, except for one outlier which has 1 g/L.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 table(red$citric.acid)[[1]]/length(red$X)
 ```
 
 Red wine has lower levels of citric acid than white wine; about 50% of the red wines have more than 0.25 g/L, whereas about 75% of white wines have more than that.
+
+#### Residual Sugar
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$residual.sugar)
+summary(white$residual.sugar)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = residual.sugar), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "", y = "Residual Sugar (g/L)")
+```
+
+We can clearly see white wines are vastly sweeter than reds overall.  There is one sweet white wine (defined as greater than 45 g/L) with 65.8 g/L.  Some of the larger values and all outliers for the white wine were excluded from the histogram below in order to get a better look at the data.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = residual.sugar), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.5) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.5) +
+  xlim(c(0, 20)) +
+  facet_grid(color~.) +
+  labs(x = 'Residual Sugar (g/L)', y = 'Count')
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = residual.sugar), data = df) +
+  geom_histogram(data = white, fill = "khaki2") +
+  geom_histogram(data = red, fill = "maroon4") +
+  scale_x_log10() +
+  facet_grid(color~.) +
+  labs(x = "Residual Sugar (g/L)", y = "Count")
+```
+
+Red and white wines each have a large peak around 2-2.5.  While after this peak, red wines decrease rapidly and have a very long tail, white wines decrease, but maintain a higher level of sweeter wines. Even after a log10 transformation of the x-axis, the distribution of residual sugar in red wines is still slightly skewed to the right.  The transformation condenses the right side of the white wines data into one mass, making the data look bimodal.
+
+#### Chlorides
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$chlorides)
+summary(white$chlorides)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = chlorides), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "", y = "Chlorides (g/L)")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = chlorides), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.01) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.01) +
+  facet_grid(color~.) +
+  labs(x = 'Chlorides (g/L)', y = 'Count')
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = chlorides), data = df) +
+  geom_histogram(data = white, fill = "khaki2") +
+  geom_histogram(data = red, fill = "maroon4") +
+  scale_x_log10() +
+  facet_grid(color~.) +
+  labs(x = 'Chlorides (g/L)', y = 'Count')
+```
+
+White wines have lower levels of chlorides in general; most white wines have less than 0.07 grams of chlorides per liter, where as 75% of reds have greater than this amount.  Chloride distributions for both colors are very clustered, but with a significant number of outliers, and some lying very far away from the mass of the data.  Even after a log transformation both distributions are very long tailed.  Additionally, the scale also emphasizes some of the lower values.
+
+
+#### Free Sulfur Dioxide
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$free.sulfur.dioxide)
+summary(white$free.sulfur.dioxide)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = free.sulfur.dioxide), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "", y = "Free Sulfur Dioxide (g/L)")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = free.sulfur.dioxide), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 7.5) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 7.5) +
+  facet_grid(color~.) +
+  labs(x = "Free Sulfur Dioxide (g/L)", y = "Count")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = free.sulfur.dioxide), data = df) +
+  geom_histogram(data = white, fill = "khaki2") +
+  geom_histogram(data = red, fill = "maroon4") +
+  scale_x_log10() +
+  facet_grid(color~.) +
+  labs(x = "Free Sulfur Dioxide (g/L)", y = "Count")
+```
+
+The distribution for red wines has a much smaller range and fewer outliers than that of the whites.  White wines also have one outlier at 239 that is more than 100 g/L greater than the next largest value.  Red wines have much less sulfur dioxide; more than 75% of reds have less than 23 g/L, while whites have only 25% of points below this value.
+
+#### Total Sulfur Dioxide
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$total.sulfur.dioxide)
+summary(white$total.sulfur.dioxide)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = total.sulfur.dioxide), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "", y = "Total Sulfur Dioxide (g/L)")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = total.sulfur.dioxide), data = df) +
+  geom_histogram(data = white, fill = "khaki2") +
+  geom_histogram(data = red, fill = "maroon4") +
+  facet_grid(color~.) +
+  labs(x = "Total Sulfur Dioxide (g/L)", y = "Count")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = total.sulfur.dioxide), data = df) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 10) +
+  labs(x = 'Total Sulfur Dioxide (g/L)', y = 'Count')
+```
+
+The distributions for total sulfur dioxide look drastically different from each other, although they do look somewhat similar to those for free sulfur dioxide.  The distribution for white wines looks normal, with some high outliers.  The distribution for red wines is more skewed to the right, also with a few outliers.  Overall, white wines have much higher levels of sulfur dioxide with almost all the red wines having less sulfur dioxide than 50% of white wines.
+
+#### Density
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$density)
+summary(white$density)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = density), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "", y = "Density")
+```
+
+Red wines are more dense than white wines overall, but there are some large outliers for the density of white wines.  However, even though the range for white wines is larger, it still very small at only 0.0519.  It is worth noting that most wines are slightly less dense than water, which has a density of 1.
+
+### pH
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$pH)
+summary(white$pH)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = pH), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "", y = "pH")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = pH), data = df) +
+  geom_histogram(data = white, fill = "khaki2") +
+  geom_histogram(data = red, fill = "maroon4") +
+  facet_grid(color~.) +
+  labs(x = "pH", y = "Count")
+```
+
+The shapes of the distributions for white and red wine pHs look very similar, but with the reds shifted slightly higher.  This indicates that red wines are slightly more basic and white wines are slightly more acidic.  Both distributions have tails on both ends, and look approximately normally distributed.
+
+#### Sulfates
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$sulphates)
+summary(white$sulphates)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = sulphates), data = df) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "", y = "Sulphates (g/L)")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = sulphates), data = df) +
+  geom_histogram(data = white, fill = "khaki2") +
+  geom_histogram(data = red, fill = "maroon4") +
+  facet_grid(color~.) +
+  labs(x = "Sulphates", y = "Count")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = sulphates), data = df) +
+  geom_histogram(data = white, fill = "khaki2") +
+  geom_histogram(data = red, fill = "maroon4") +
+  scale_x_log10() +
+  facet_grid(color~.) +
+  labs(x = "Sulphates", y = "Count")
+```
+
+The boxplots for both distributions look very similar, although red wines have more significant outliers.  White wines are log-normal, but red wines still have high values after the log transformation.  White wines also have less sulfates than red wines, with 75% of white wines having less than 0.55 g/L, and only 25% of red wines having less than this amount.
+
+#### Percent Alcohol
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$alcohol)
+summary(white$alcohol)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = color, y = alcohol), data = df) +
+  geom_boxplot() +
+  scale_y_continuous(breaks = seq(8, 15, by = 1)) +
+  coord_flip() +
+  labs(x = "", y = "Alcohol (%)")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = alcohol), data = df) +
+  geom_histogram(data = white, fill = "khaki2", binwidth = 0.5, alpha = 0.7) +
+  geom_histogram(data = red, fill = "maroon4", binwidth = 0.5, alpha = 0.7) +
+  scale_x_continuous(breaks = seq(8, 16, by = 1)) +
+  labs(x = 'Alcohol (%)', y = 'Count')
+```
+
+The shapes of the distributions for the percent alcohol in red and white wines are practically identical.  They both peak around 9.5 and have very similar means and quartiles.  The distribution for red wines have a slightly longer tail and a few outliers.
+
+#### Quality
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(red$quality)
+summary(white$quality)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = quality, y = ..prop.., fill = color), data = df) +
+  geom_bar(width = 0.75, position = position_dodge(width=0.75)) +
+  scale_x_continuous(breaks = seq(0, 10, by = 1)) +
+  scale_fill_manual(values = c("khaki2", "maroon4")) +
+  guides(fill=FALSE) +
+  labs(x = 'Quality Score', y = 'Proportion')
+```
+
+We can see that red and white wines have very similar proportions for wines with quality scores of 3 and 4.  Red wines in this data set are of slightly lower quality; they have a greater proportion of wines with a score of 5 and a lower portion that are scored 6, 7, and 8, as compared with whites.  Additionally, the maximum quality score for white wines is 9, whereas the highest score awarded to a red wine is 8.
