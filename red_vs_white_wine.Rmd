@@ -393,22 +393,18 @@ ggplot(aes(x = color, y = total.sulfur.dioxide), data = df) +
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(aes(x = total.sulfur.dioxide), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3") +
-  geom_histogram(data = red, fill = "hotpink4") +
-  facet_grid(color~.) +
-  labs(x = "Total Sulfur Dioxide (g/L)", y = "Count")
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = total.sulfur.dioxide), data = df) +
-  geom_histogram(data = red, fill = "hotpink4", binwidth = 10) +
+  geom_histogram(data = white, fill = "darkolivegreen3",
+                 alpha = 0.5) +
+  geom_histogram(data = red, fill = "hotpink4",
+                 alpha = 0.5) +
+  xlim(0, 300) +
   labs(x = 'Total Sulfur Dioxide (g/L)', y = 'Count')
 ```
 
 The distributions for total sulfur dioxide look drastically different from each
 other, although they do look somewhat similar to those for free sulfur dioxide.
 The distribution for white wines looks normal, with some high outliers.  The
-distribution for red wines is more skewed to the right, also with a few
+distribution for red wines is skewed to the right, also with a few
 outliers.  Overall, white wines have much higher levels of sulfur dioxide with
 almost all the red wines having less sulfur dioxide than 50% of white wines.
 
@@ -729,7 +725,7 @@ together could be very useful in a classification model.
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=6}
 ggplot(aes(x = alcohol, y = total.sulfur.dioxide, color = residual.sugar),
        data = subset(df, residual.sugar < quantile(df$residual.sugar, 0.99))) +
-  geom_point(alpha = 1, size = 2) +
+  geom_point(size = 1) +
   geom_smooth(method = "loess") +
   facet_wrap(~color) +
   scale_color_continuous(low = "#f7fcff", high = "#003556") +
@@ -805,6 +801,55 @@ not as strong in red wines and residual sugar does not vary along alcohol and
 density as it does in whites, there is a small group of reds with low alcohol
 and high density that have a high amount of residual sugar.
 
+## Final Plots and Summary
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = total.sulfur.dioxide), data = df) +
+  geom_histogram(data = white, fill = "darkolivegreen3",
+                 alpha = 0.5) +
+  geom_histogram(data = red, fill = "hotpink4",
+                 alpha = 0.5) +
+  xlim(0, 300) +
+  labs(x = 'Total Sulfur Dioxide (g/L)', y = 'Count') +
+  ggtitle('Total Sulfur Dioxide by Wine Color\n') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
+Total sulfur dioxide shows the greatest separation of sulfur dioxide by class.
+We can clearly see that here is not a huge overlap between the colors and that
+white wines have a normal distribution and reds are skewed to the right.  This
+plot indicates that this variable could be used successfully in a classification
+model based on color.
 
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width = 8, fig.height = 6}
+ggplot(aes(x = chlorides, y = total.sulfur.dioxide, color = color),
+       data = df) +
+  geom_point(alpha = 0.4) +
+  theme(legend.position="none") +
+  scale_color_manual(values = c("darkolivegreen3", "hotpink4")) +
+  xlim(0.02, 0.15) +
+  ylim(0.1, 260) +
+  labs(x = "Chlorides (g/L)", y = "Total Sulfur Dioxide (g/L)") +
+  ggtitle('Chlorides vs. Total Sulfur Dioxide by Wine Color\n') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Although there are some red and white wines interspersesed around clusters of
+the opposite color, the two classes show a distinct and clear separation with a 
+fairly wide margin.  This plot indicates that these two variables could be used
+successfully in a classification model based on color.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=6}
+ggplot(aes(x = alcohol, y = density, color = residual.sugar),
+       data = subset(df, residual.sugar < quantile(df$residual.sugar, 0.99))) +
+  geom_point(size = 1) +
+  facet_grid(~color) +
+  scale_color_continuous(low = "#f7fcff", high = "#003556") +
+  labs(x = "Alcohol (%)", y = "Density", color="Residual Sugar (g/L)") +
+  ggtitle('Density by Percent Alcohol, Residual Sugar, and Wine Color\n') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+This plot shows that while density and alcohol alone are not enough to show
+a separation based on wine color, the addition of residual sugar would help
+to explain the differences in red and white wines.
