@@ -834,7 +834,7 @@ ggplot(aes(x = chlorides, y = total.sulfur.dioxide, color = color),
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Although there are some red and white wines interspersesed around clusters of
+Although there are some red and white wines interspersed around clusters of
 the opposite color, the two classes show a distinct and clear separation with a 
 fairly wide margin.  This plot indicates that these two variables could be used
 successfully in a classification model based on color.
@@ -853,3 +853,28 @@ ggplot(aes(x = alcohol, y = density, color = residual.sugar),
 This plot shows that while density and alcohol alone are not enough to show
 a separation based on wine color, the addition of residual sugar would help
 to explain the differences in red and white wines.
+
+## Reflection
+
+I started by trying to understand each individual variable across red and white
+wines to see if it would be feasible to eventually create a classifier for
+color.  Using the results of the univariate plots and the scatterplot matrix, I
+then explored two variables at a time to see if this would increase the
+distinction between red and white wines. Finally I investigated three variables
+at a time to see how they interact and separate the classes.  I was pleasantly
+surprised that the red and white wines showed such clear clusters in many
+of the bivariate plots.  I also explored the relationship between
+the chemical properties of the wine and quality, and unfortunately the
+relationships were not nearly as strong.  Additionally, classifying based on 
+quality or a rating class (e.g. 3-4 = poor, 5-6 = good,
+7-9 = excellent) is a much more difficult task owing to the fact that good
+wines vastly outnumber poor and excellent wines
+
+As aforementioned there are wines with with duplicate properties which could
+inflate measures of accuracy for any future classification models.  
+Additionally, conclusions from these explorations and future classification
+tasks would be limited since the data set only contains a sample of
+Portuguese wines.  It would be interesting to explore if these relationships 
+held up when using a data set with wines from around the world.
+
+
