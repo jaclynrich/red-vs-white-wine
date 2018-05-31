@@ -2,7 +2,12 @@
 title: "Red vs. White Wine"
 author: "Jaclyn Rich"
 date: "3/28/2018"
-output: github_document  
+output:
+  github_document:
+    toc: true
+    fig_width: 6
+    fig_height: 4
+    dev: jpeg
 ---
 
 ```{r setup, include=FALSE}
@@ -872,10 +877,10 @@ quality or a rating class (e.g. 3-4 = poor, 5-6 = good,
 wines vastly outnumber poor and excellent wines
 
 As aforementioned there are wines with with duplicate properties which could
-inflate measures of accuracy for any future classification models.  
-Additionally, conclusions from these explorations and future classification
-tasks would be limited since the data set only contains a sample of
-Portuguese wines.  It would be interesting to explore if these relationships 
-held up when using a data set with wines from around the world.
+inflate measures of accuracy for any future classification models.  Additionally,
+conclusions from these explorations and future classification tasks would be
+limited since the data set only contains a sample of Portuguese wines.  It would
+be interesting to explore if these relationships held up when using a data set
+with wines from around the world.
 
 
