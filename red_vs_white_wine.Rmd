@@ -2,12 +2,7 @@
 title: "Red vs. White Wine"
 author: "Jaclyn Rich"
 date: "3/28/2018"
-output:
-  pdf_document:
-    toc: yes
-  html_document:
-    theme: united
-    toc: yes
+output: github_document  
 ---
 
 ```{r setup, include=FALSE}
