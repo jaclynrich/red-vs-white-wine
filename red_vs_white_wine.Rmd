@@ -21,7 +21,9 @@ library(rmarkdown)
 library(gridExtra)
 library(corrplot)
 library(GGally)
+library(caret)
 theme_set(theme_bw())
+set.seed(123)
 ```
 
 ## Data Overview
@@ -71,9 +73,48 @@ Features:
 
 The amounts are in grams per liter.
 
+### Load the Data and Split into Training and Testing Sets
+
+```{r message=FALSE, warning=FALSE}
+white_full <- read.csv('wineQualityWhites.csv')
+red_full <- read.csv('wineQualityReds.csv')
+
+dim(white_full)
+dim(red_full)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Add color field and join the dataframes
+white_full$color = "white"
+red_full$color = "red"
+df_full <- rbind(red_full[-c(1)], white_full[-c(1)]) # do not include X (index) field
+df_full$color <- as.factor(df_full$color)
+df_full$color <- relevel(df_full$color, "white")
+dim(df_full)
+```
+
+The data is split into training and testing sets, stratified to maintain
+the same ratio of red to white wines in both, so that a model may be built
+later to classify a wine as red or white.  The test set contains 20% of the
+data points.  The training set will be used for exploration in this notebook.
+The train and test sets are saved as csvs and will be used in a separate Jupyter
+Notebook that creates and evaluates a classification model.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+train.index <- createDataPartition(y = df_full$color, p = 0.8, list = FALSE)
+train <- df_full[train.index, ]
+test <- df_full[-train.index, ]
+write.csv(train, "wine_training_set.csv")
+write.csv(test, "wine_test_set.csv")
+
+white <- train[which(train$color == "white"), -c(13)]
+red <- train[which(train$color == "red"), -c(13)]
+df <- train
+df$color <- relevel(df$color, "red")
+```
+
 ### White Wine
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-white <- read.csv('wineQualityWhites.csv')
 dim(white)
 str(white)
 summary(white)
@@ -82,7 +123,6 @@ head(white)
 
 ### Red Wine
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-red <- read.csv('wineQualityReds.csv')
 dim(red)
 str(red)
 summary(red)
@@ -91,12 +131,6 @@ head(red)
 
 ### Combined Data
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Add color field and join the dataframes
-white$color = "white"
-red$color = "red"
-df <- rbind(red[-c(1)], white[-c(1)]) # do not include X (index) field
-df$color <- as.factor(df$color)
-df$color <- relevel(df$color, "white")
 dim(df)
 str(df)
 summary(df)
@@ -116,7 +150,7 @@ wines in the data.  This is important to keep in mind when training for
 classification based on color.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-sum(duplicated(df))
+sum(duplicated(df_full))
 ```
 
 ## Univariate Plots and Analysis
@@ -134,15 +168,15 @@ summary(white$fixed.acidity)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = fixed.acidity), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3", binwidth = 0.5) +
-  geom_histogram(data = red, fill = "hotpink4", binwidth = 0.5) +
+ggplot(aes(x = fixed.acidity, fill = color), data = df) +
+  geom_histogram(binwidth = 0.5) +
   scale_x_continuous(breaks = seq(0, 16, by = 1)) +
   facet_grid(color~.) +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = "Tartaric Acid (g/L)", y = "Count")
 ```
 
-Since the counts for red wine are so much lower, I plotted the them separately.
+Since the counts for red wine are so much lower, I plotted them separately below.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(aes(x = fixed.acidity), data = red) +
@@ -176,6 +210,7 @@ summary(white$volatile.acidity)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+df$color <- relevel(df$color, "white")
 ggplot(aes(x = color, y = volatile.acidity), data = df) +
   geom_boxplot() +
   coord_flip() +
@@ -240,7 +275,7 @@ ggplot(aes(x = citric.acid), data = df) +
 
 The data for white wine is fairly symmetric, with a slightly longer tail on the
 right side.  We can see from the histogram and the small box on the box and
-whisker plot that most of the data lies within a small range (about 0.2 - 0.4).
+whisker plot that most of the data lies within a small range (about 0.25 - 0.4).
 This also means that many of the lower and high-valued points are considered
 outliers.
 
@@ -252,7 +287,7 @@ outlier which has 1 g/L.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Get the proportion of red wines that have a citric acid of 0
-table(red$citric.acid)[[1]]/length(red$X)
+table(red$citric.acid)[[1]]/dim(red)[1]
 ```
 
 Red wine has lower levels of citric acid than white wine; about 50% of the red
@@ -273,27 +308,29 @@ ggplot(aes(x = color, y = residual.sugar), data = df) +
   labs(x = "", y = "Residual Sugar (g/L)")
 ```
 
-We can clearly see white wines are vastly sweeter than reds overall.  There is
+We can clearly see white wines are vastly sweeter than reds overall.  There is 
 one sweet white wine (defined as greater than 45 g/L) with 65.8 g/L.  Some of
 the larger values and all outliers for the white wine were excluded from the
 histogram below in order to get a better look at the data.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = residual.sugar), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3", binwidth = 0.5) +
-  geom_histogram(data = red, fill = "hotpink4", binwidth = 0.5) +
+df$color <- relevel(df$color, "red")
+ggplot(aes(x = residual.sugar, fill = color), data = df) +
+  geom_histogram(binwidth = 0.5) +
+  geom_histogram(binwidth = 0.5) +
   xlim(c(0, 20)) +
   facet_grid(color~.) +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = 'Residual Sugar (g/L)', y = 'Count')
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = residual.sugar), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3") +
-  geom_histogram(data = red, fill = "hotpink4") +
+ggplot(aes(x = residual.sugar, fill = color), data = df) +
+  geom_histogram() +
   scale_x_log10() +
   facet_grid(color~.) +
-  labs(x = "Residual Sugar (g/L)", y = "Count")
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
+  labs(x = 'Residual Sugar (g/L)', y = 'Count')
 ```
 
 Red and white wines each have a large peak around 2-2.5.  While after this
@@ -311,6 +348,7 @@ summary(white$chlorides)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+df$color <- relevel(df$color, "white")
 ggplot(aes(x = color, y = chlorides), data = df) +
   geom_boxplot() +
   coord_flip() +
@@ -318,20 +356,21 @@ ggplot(aes(x = color, y = chlorides), data = df) +
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = chlorides), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3", binwidth = 0.01) +
-  geom_histogram(data = red, fill = "hotpink4", binwidth = 0.01) +
+df$color <- relevel(df$color, "red")
+ggplot(aes(x = chlorides, fill = color), data = df) +
+  geom_histogram(binwidth = 0.01) +
   facet_grid(color~.) +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = 'Chlorides (g/L)', y = 'Count')
 ```
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = chlorides), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3") +
-  geom_histogram(data = red, fill = "hotpink4") +
-  scale_x_log10() +
+ggplot(aes(x = chlorides, fill = color), data = df) +
+  geom_histogram() +
   facet_grid(color~.) +
+  scale_x_log10() +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = 'Chlorides (g/L)', y = 'Count')
 ```
 
@@ -350,6 +389,7 @@ summary(white$free.sulfur.dioxide)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+df$color <- relevel(df$color, "white")
 ggplot(aes(x = color, y = free.sulfur.dioxide), data = df) +
   geom_boxplot() +
   coord_flip() +
@@ -357,19 +397,20 @@ ggplot(aes(x = color, y = free.sulfur.dioxide), data = df) +
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = free.sulfur.dioxide), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3", binwidth = 7.5) +
-  geom_histogram(data = red, fill = "hotpink4", binwidth = 7.5) +
+df$color <- relevel(df$color, "red")
+ggplot(aes(x = free.sulfur.dioxide, fill = color), data = df) +
+  geom_histogram(binwidth = 7.5) +
   facet_grid(color~.) +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = "Free Sulfur Dioxide (g/L)", y = "Count")
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = free.sulfur.dioxide), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3") +
-  geom_histogram(data = red, fill = "hotpink4") +
-  scale_x_log10() +
+ggplot(aes(x = free.sulfur.dioxide, fill = color), data = df) +
+  geom_histogram() +
   facet_grid(color~.) +
+  scale_x_log10() +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = "Free Sulfur Dioxide (g/L)", y = "Count")
 ```
 
@@ -387,6 +428,7 @@ summary(white$total.sulfur.dioxide)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+df$color <- relevel(df$color, "white")
 ggplot(aes(x = color, y = total.sulfur.dioxide), data = df) +
   geom_boxplot() +
   coord_flip() +
@@ -424,8 +466,8 @@ ggplot(aes(x = color, y = density), data = df) +
   labs(x = "", y = "Density")
 ```
 
-Red wines are more dense than white wines overall, but there are some large
-outliers for the density of white wines.  However, even though the range for
+Red wines are more dense than white wines overall, although there are some large
+outliers for the density of white wines.  Even though the range for
 white wines is larger, it still very small at only 0.0519.  It is worth noting
 that most wines are slightly less dense than water, which has a density of 1.
 
@@ -444,10 +486,11 @@ ggplot(aes(x = color, y = pH), data = df) +
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = pH), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3") +
-  geom_histogram(data = red, fill = "hotpink4") +
+df$color <- relevel(df$color, "red")
+ggplot(aes(x = pH, fill = color), data = df) +
+  geom_histogram() +
   facet_grid(color~.) +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = "pH", y = "Count")
 ```
 
@@ -465,6 +508,7 @@ summary(white$sulphates)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+df$color <- relevel(df$color, "white")
 ggplot(aes(x = color, y = sulphates), data = df) +
   geom_boxplot() +
   coord_flip() +
@@ -472,19 +516,20 @@ ggplot(aes(x = color, y = sulphates), data = df) +
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = sulphates), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3") +
-  geom_histogram(data = red, fill = "hotpink4") +
+df$color <- relevel(df$color, "red")
+ggplot(aes(x = sulphates, fill = color), data = df) +
+  geom_histogram() +
   facet_grid(color~.) +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = "Sulphates", y = "Count")
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(aes(x = sulphates), data = df) +
-  geom_histogram(data = white, fill = "darkolivegreen3") +
-  geom_histogram(data = red, fill = "hotpink4") +
-  scale_x_log10() +
+ggplot(aes(x = sulphates, fill = color), data = df) +
+  geom_histogram() +
   facet_grid(color~.) +
+  scale_x_log10() +
+  scale_fill_manual(guide=FALSE, values = c("hotpink4", "darkolivegreen3")) +
   labs(x = "Sulphates", y = "Count")
 ```
 
@@ -502,6 +547,7 @@ summary(white$alcohol)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+df$color <- relevel(df$color, "white")
 ggplot(aes(x = color, y = alcohol), data = df) +
   geom_boxplot() +
   scale_y_continuous(breaks = seq(8, 15, by = 1)) +
@@ -565,8 +611,8 @@ corrplot.mixed(cor(df_for_plots[,1:12]), tl.col = "black")
 
 Unsurprisingly the two variables with the strongest correlation are free sulfur
 dioxide and total sulfur dioxide at 0.72.  The next strongest relationship is a
-negative one between density and percent alcohol at -0.69.  Residual sugar and
-density also have a moderately strong relationship with a correlation of 0.55
+negative one between density and percent alcohol at -0.68.  Residual sugar and
+density also have a moderately strong relationship with a correlation of 0.56
 It is also interesting to note that quality has the strongest positive
 relationship with percent alcohol and negative relationships with density and
 volatile acidity.  It is important that we know which variables in the data are
@@ -592,12 +638,12 @@ some relationships not apparent when we looked at the relationships regardless
 of wine color.  Both red and white wines have a strong negative relationship
 between pH and quality, meaning the as the pH increases, or the wine becomes
 more basic, the quality decreases.  For white wines the strongest relationship
-is between chlorides and pH, at 0.84; this relationship was non-existent in the
-aggregated correlation matrix, with a correlation of 0.04 between these
-variables.  Red wines have much stronger relationships between volatile acidity
-and other variables as compared with white wines; residual sugar and pH have
-moderately strong positive relationships with volatile acidity, and sulphates
-have a moderately strong negative one with it.
+is between residual sugar and density, at 0.84; this relationship was 
+was much weaker in the aggregated correlation matrix, with a correlation of 0.56
+between these variables.  Red wines have much stronger relationships between
+volatile acidity and other variables as compared with white wines; residual
+sugar and pH have moderately strong positive relationships with volatile
+acidity, and sulphates have a moderately strong negative one with it.
 
 In order to aid in classification according to wine color, it will be most
 helpful to find pairs of variables that show the greatest separation between
@@ -751,9 +797,9 @@ consistently along total sulfur dioxide as they do along percent alcohol.
 nrow(df) - nrow(subset(df, residual.sugar < quantile(df$residual.sugar, 0.99)))
 ```
 
-The data was subsetted to trim the top 1% of data points according to residual
-sugar, since the outliers were not allowing the plot to show the full range of
-color.
+The data was subsetted to trim the top 1% (53) of data points according to
+residual sugar, since the outliers were not allowing the plot to show the full
+range of color.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=6}
 ggplot(aes(x = density, y = total.sulfur.dioxide, color = residual.sugar),
@@ -882,5 +928,3 @@ conclusions from these explorations and future classification tasks would be
 limited since the data set only contains a sample of Portuguese wines.  It would
 be interesting to explore if these relationships held up when using a data set
 with wines from around the world.
-
-
